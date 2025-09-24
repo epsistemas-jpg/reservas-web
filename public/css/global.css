@@ -89,6 +89,7 @@ button:hover {
 }
 .fc-h-event .fc-event-main {
     color: #251919;
+    font-weight: bold !important;
 }
 
 

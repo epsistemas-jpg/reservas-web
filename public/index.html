@@ -8,15 +8,13 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <style>
-    /* Rectángulos más visibles para las reservas */
+    /* Solo estilos generales, no colores */
     .fc-event {
-      background-color: #c7d80f !important;
-      border: 1px solid #2c3e50 !important;
       border-radius: 6px !important;
       padding: 2px 4px;
       font-size: 0.85rem;
-      color: rgb(0, 0, 0) !important;
       cursor: pointer;
+      font-weight: 500;
     }
 
     /* Tooltip personalizado */
@@ -54,29 +52,51 @@
     document.addEventListener("DOMContentLoaded", function () {
       const tooltip = document.getElementById("tooltip");
       const calendarEl = document.getElementById("calendar");
+
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         locale: "es",
         eventTimeFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
+
         events: async function (fetchInfo, successCallback, failureCallback) {
           try {
             let res = await fetch("/api/reservations");
             let data = await res.json();
-            let events = data.map(r => ({
-              id: r.id,
-              title: `${r.room} - ${r.user_name}`,
-              start: `${r.date}T${r.start_time}`,
-              end: `${r.date}T${r.end_time}`,
-              extendedProps: {
-                horaInicio: r.start_time,
-                horaFin: r.end_time
-              }
-            }));
+
+            let events = data.map(r => {
+              let color = "#3a87ad"; // default azul
+
+              //  Colores según sala
+              if (r.room === "Bocas de ceniza") {
+    color = "#f39c12"; // naranja
+  } else if (r.room === "Rio Magdalena") {
+    color = "#27ae60"; // verde
+  } else if (r.room === "Piso 1109") {
+    color = "#3a87ad"; // azul
+  }
+
+              return {
+                id: r.id,
+                title: `${r.room} - ${r.user_name}`,
+                start: `${r.date}T${r.start_time}`,
+                end: `${r.date}T${r.end_time}`,
+                backgroundColor: color,
+                borderColor: color,
+                textColor: "black", // 🔑 fuerza el color del texto
+                display: "block",     // 🔑 asegura que se pinte en dayGrid
+                extendedProps: {
+                  horaInicio: r.start_time,
+                  horaFin: r.end_time
+                }
+              };
+            });
+
             successCallback(events);
           } catch (err) {
             failureCallback(err);
           }
         },
+
         eventDidMount: function(info) {
           // Tooltip en hover
           info.el.addEventListener("mouseenter", (e) => {
@@ -100,6 +120,7 @@
           });
         }
       });
+
       calendar.render();
     });
   </script>

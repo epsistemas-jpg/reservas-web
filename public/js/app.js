@@ -14,18 +14,31 @@ document.addEventListener("DOMContentLoaded", function () {
       try {
         let res = await fetch("/api/reservations");
         let data = await res.json();
-        let events = data.map(r => ({
-          id: r.id,
-          title: `${r.room} - ${r.user_name}`,
-          start: `${r.date}T${r.start_time}`,
-          end: `${r.date}T${r.end_time}`,
-          backgroundColor: "#c2d500",
-          borderColor: "#265d73",
-          extendedProps: {
-            horaInicio: r.start_time,
-            horaFin: r.end_time
-          }
-        }));
+        let events = data.map(r => {
+  let color = "#3a87ad"; // color por defecto
+
+  if (r.room === "Bocas de ceniza") {
+    color = "#f39c12"; // naranja
+  } else if (r.room === "Rio Magdalena") {
+    color = "#27ae60"; // verde
+  } else if (r.room === "Piso 1109") {
+    color = "#3a87ad"; 
+  }
+
+  return {
+    id: r.id,
+    title: `${r.room} - ${r.user_name}`,
+    start: `${r.date}T${r.start_time}`,
+    end: `${r.date}T${r.end_time}`,
+    color: color, 
+    
+    extendedProps: {
+      horaInicio: r.start_time,
+      horaFin: r.end_time
+    }
+  };
+});
+
         successCallback(events);
       } catch (err) {
         failureCallback(err);
