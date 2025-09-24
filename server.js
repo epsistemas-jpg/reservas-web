@@ -2,13 +2,30 @@ const express = require("express");
 const session = require("express-session");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcrypt");
-const sqlite3 = require("sqlite3").verbose();
+const { Pool } = require("pg");
 const path = require("path");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// ---------------------------
+// 🔹 Conexión a PostgreSQL
+// ---------------------------
+const pool = new Pool({
+  connectionString: "postgresql://reservasdb_xddp_user:CBiDZwHLQi4Vpdxkpfx69vXs4jHDwneD@dpg-d39hb7fdiees73f2un60-a.virginia-postgres.render.com:5432/reservasdb_xddp",
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+// Ejemplo para probar conexión
+pool.connect()
+  .then(() => console.log("Conectado a PostgreSQL en Render 🚀"))
+  .catch(err => console.error("Error de conexión:", err));
+
+// ---------------------------
+// 🔹 Middlewares
+// ---------------------------
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
@@ -16,58 +33,57 @@ app.use(session({
   resave: false,
   saveUninitialized: false
 }));
-
-// Archivos estáticos
 app.use(express.static(path.join(__dirname, "public")));
 
-// Redirigir la raíz al login
+// ---------------------------
+// 🔹 Redirigir raíz al login
+// ---------------------------
 app.get("/", (req, res) => {
   res.redirect("/login.html");
 });
 
-
-// Base de datos SQLite
-const db = new sqlite3.Database(path.join(__dirname, "reservas.db"), (err) => {
-  if (err) console.error(err.message);
-  else console.log("Base de datos conectada.");
-});
-
-// Crear tablas si no existen
-db.serialize(() => {
-  db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE, password TEXT)");
-  db.run("CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, room TEXT, date TEXT, start_time TEXT, end_time TEXT, FOREIGN KEY(user_id) REFERENCES users(id))");
-});
-
-// Middleware de autenticación
+// ---------------------------
+// 🔹 Middleware de autenticación
+// ---------------------------
 function requireLogin(req, res, next) {
   if (!req.session.userId) return res.status(401).send("No autenticado");
   next();
 }
 
-// Rutas de autenticación
+// ---------------------------
+// 🔹 Rutas de autenticación
+// ---------------------------
 app.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
   const hashed = await bcrypt.hash(password, 10);
 
-  db.run("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [name, email, hashed], function (err) {
-    if (err) return res.status(400).send("Usuario ya existe o error.");
-    res.redirect("/login.html");
-  });
+  pool.query(
+    "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
+    [name, email, hashed]
+  )
+    .then(() => res.redirect("/login.html"))
+    .catch(err => {
+      console.error(err);
+      res.status(400).send("Usuario ya existe o error.");
+    });
 });
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
-  db.get("SELECT * FROM users WHERE email = ?", [email], async (err, row) => {
-    if (!row) return res.status(400).send("Usuario no encontrado");
+  pool.query("SELECT * FROM users WHERE email = $1", [email])
+    .then(async result => {
+      if (result.rows.length === 0) return res.status(400).send("Usuario no encontrado");
 
-    const match = await bcrypt.compare(password, row.password);
-    if (!match) return res.status(400).send("Contraseña incorrecta");
+      const row = result.rows[0];
+      const match = await bcrypt.compare(password, row.password);
+      if (!match) return res.status(400).send("Contraseña incorrecta");
 
-    req.session.userId = row.id;
-    req.session.userName = row.name;
-    res.redirect("/reservas.html");
-  });
+      req.session.userId = row.id;
+      req.session.userName = row.name;
+      res.redirect("/reservas.html");
+    })
+    .catch(err => res.status(500).send(err.message));
 });
 
 app.get("/logout", (req, res) => {
@@ -76,26 +92,35 @@ app.get("/logout", (req, res) => {
   });
 });
 
-// API Reservas
+// ---------------------------
+// 🔹 API Reservas
+// ---------------------------
 app.get("/api/reservations", (req, res) => {
   const query = `
-    SELECT reservations.id, reservations.room, reservations.date, 
-           reservations.start_time, reservations.end_time, users.name AS user_name
-    FROM reservations
-    JOIN users ON reservations.user_id = users.id
+    SELECT 
+  reservations.id, 
+  reservations.room, 
+  TO_CHAR(reservations.date, 'YYYY-MM-DD') as date, 
+  reservations.start_time, 
+  reservations.end_time, 
+  users.name AS user_name
+FROM reservations
+JOIN users ON reservations.user_id = users.id;
+
   `;
-  db.all(query, [], (err, rows) => {
-    if (err) return res.status(500).send(err.message);
-    res.json(rows);
-  });
+  pool.query(query)
+    .then(result => {
+      //console.log(result.rows); // 👈 Ver qué devuelve
+      res.json(result.rows);
+    })
+    .catch(err => res.status(500).send(err.message));
 });
 
 
 app.get("/api/myreservations", requireLogin, (req, res) => {
-  db.all("SELECT * FROM reservations WHERE user_id = ?", [req.session.userId], (err, rows) => {
-    if (err) return res.status(500).send(err.message);
-    res.json(rows);
-  });
+  pool.query("SELECT * FROM reservations WHERE user_id = $1", [req.session.userId])
+    .then(result => res.json(result.rows))
+    .catch(err => res.status(500).send(err.message));
 });
 
 app.post("/api/reservations", requireLogin, (req, res) => {
@@ -106,24 +131,30 @@ app.post("/api/reservations", requireLogin, (req, res) => {
   const selectedDate = new Date(date + "T" + start_time);
   if (selectedDate < now) return res.status(400).send("No se puede reservar en el pasado.");
 
-  db.get("SELECT * FROM reservations WHERE date = ? AND room = ? AND ((start_time <= ? AND end_time > ?) OR (start_time < ? AND end_time >= ?))",
-    [date, room, start_time, start_time, end_time, end_time], (err, row) => {
-      if (row) return res.status(400).send("Horario ocupado.");
+  pool.query(
+    "SELECT * FROM reservations WHERE date = $1 AND room = $2 AND ((start_time <= $3 AND end_time > $3) OR (start_time < $4 AND end_time >= $4))",
+    [date, room, start_time, end_time]
+  )
+    .then(result => {
+      if (result.rows.length > 0) return res.status(400).send("Horario ocupado.");
 
-      db.run("INSERT INTO reservations (user_id, room, date, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
-        [req.session.userId, room, date, start_time, end_time], function (err) {
-          if (err) return res.status(500).send(err.message);
-          res.send("Reserva creada");
-        });
-    });
+      pool.query(
+        "INSERT INTO reservations (user_id, room, date, start_time, end_time) VALUES ($1, $2, $3, $4, $5)",
+        [req.session.userId, room, date, start_time, end_time]
+      )
+        .then(() => res.send("Reserva creada"))
+        .catch(err => res.status(500).send(err.message));
+    })
+    .catch(err => res.status(500).send(err.message));
 });
 
 app.delete("/api/reservations/:id", requireLogin, (req, res) => {
-  db.run("DELETE FROM reservations WHERE id = ? AND user_id = ?", [req.params.id, req.session.userId], function (err) {
-    if (err) return res.status(500).send(err.message);
-    res.send("Reserva eliminada");
-  });
+  pool.query("DELETE FROM reservations WHERE id = $1 AND user_id = $2", [req.params.id, req.session.userId])
+    .then(() => res.send("Reserva eliminada"))
+    .catch(err => res.status(500).send(err.message));
 });
 
-// Iniciar servidor
+// ---------------------------
+// 🔹 Iniciar servidor
+// ---------------------------
 app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}`));

@@ -1,9 +1,15 @@
 {
+  "name": "sala_reservas",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.0",
-    "express": "^5.1.0",
-    "express-session": "^1.18.2",
-    "sqlite3": "^5.1.7"
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "body-parser": "^1.20.2",
+    "bcrypt": "^5.1.0",
+    "pg": "^8.11.1"
   }
 }
