@@ -1,0 +1,63 @@
+/* ==== login.css ==== */
+
+/* Fondo azul degradado y centrado */
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #c2d500, #7b8601);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Caja blanca */
+.login-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 40px 30px;
+  width: 350px;
+  text-align: center;
+}
+
+/* Título */
+.login-container h1 {
+  font-size: 22px;
+  margin-bottom: 10px;
+  color: #204339;
+}
+
+.login-container p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 25px;
+}
+
+/* Inputs */
+.login-container input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.login-container input:focus {
+  border-color: #1976d2;
+  outline: none;
+  box-shadow: 0 0 4px rgba(25, 118, 210, 0.4);
+}
+
+/* Botón */
+.login-container button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* Texto inferior */
+.login-container .register-text {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #555;
+}

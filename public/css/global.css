@@ -1,0 +1,95 @@
+/* ==== global.css ==== */
+
+/* Fuente y reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  background: #c2d500;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* Enlaces */
+a {
+  color: #1f2110;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Botones */
+button {
+  background: #c7d80f;
+  color: #1f2110;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background: #e7f360;
+}
+
+.fc-event-title, .fc-event-time,
+.fc-user {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+
+}
+
+
+/* Tooltip personalizado */
+.fc-tooltip {
+  position: absolute;
+  background: #2d502c;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 10001;
+  display: none;
+}
+
+.cerrar-ventana {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.cerrar-ventana:hover {
+  color: red;
+}
+.modal-content {
+  position: relative;
+  background: #fff;
+  margin: auto;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 500px;
+}
+.fc-h-event .fc-event-main {
+    color: #251919;
+}
+
+
+

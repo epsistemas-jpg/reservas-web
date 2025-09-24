@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro</title>
+  <link rel="stylesheet" href="css/register.css">
+  <link rel="stylesheet" href="css/global.css">
+</head>
+<body>
+  <div class="register-container">
+    <h1>Registro de Usuario</h1>
+    <form action="/register" method="POST">
+      <input type="text" name="name" placeholder="Nombre completo" required>
+      <input type="email" name="email" placeholder="Correo electrónico" required>
+      <input type="password" name="password" placeholder="Contraseña" required>
+      <button type="submit">Registrar</button>
+    </form>
+    <p class="register-text">
+      ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
+    </p>
+  </div>
+</body>
+</html>
