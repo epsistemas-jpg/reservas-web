@@ -12,15 +12,17 @@ const PORT = process.env.PORT || 3000;
 // 🔹 Conexión a PostgreSQL
 // ---------------------------
 const pool = new Pool({
-  connectionString: "postgresql://reservasdb_xddp_user:CBiDZwHLQi4Vpdxkpfx69vXs4jHDwneD@dpg-d39hb7fdiees73f2un60-a.virginia-postgres.render.com:5432/reservasdb_xddp",
-  ssl: {
-    rejectUnauthorized: false
-  }
+  user: "postgres",
+  host: "localhost",
+  database: "reservas_db",
+  password: "1234",
+  port: 5432
 });
+
 
 // Ejemplo para probar conexión
 pool.connect()
-  .then(() => console.log("Conectado a PostgreSQL en Render 🚀"))
+  .then(() => console.log("Conectado a PostgreSQL Local 🚀"))
   .catch(err => console.error("Error de conexión:", err));
 
 // ---------------------------
