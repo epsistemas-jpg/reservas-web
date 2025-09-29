@@ -127,31 +127,42 @@ app.post("/api/reservations", requireLogin, (req, res) => {
 
   const now = new Date();
 
-  const startDateTime = new Date(`${date}T${start_time}`);
-  const endDateTime = new Date(`${date}T${end_time}`);
+  // 🔹 Normalizar horas (asegúrate que lleguen en formato HH:mm, ej: "21:00")
+  const startDateTime = new Date(`${date}T${start_time}:00`);
+  const endDateTime = new Date(`${date}T${end_time}:00`);
 
-  const today = new Date(now.toISOString().split("T")[0]); // solo fecha actual sin hora
+  const today = new Date(now.toISOString().split("T")[0]); // fecha de hoy sin hora
   const selectedDate = new Date(date);
 
+  // 1. No dejar reservar en días pasados
   if (selectedDate < today) {
     return res.status(400).send("No se puede reservar en un día anterior.");
   }
 
+  // 2. Si es hoy, no dejar reservar en horas pasadas
   if (selectedDate.getTime() === today.getTime() && startDateTime <= now) {
     return res.status(400).send("La hora de inicio ya pasó.");
   }
 
+  // 3. Hora de fin debe ser mayor que inicio
   if (endDateTime <= startDateTime) {
     return res.status(400).send("La hora de fin debe ser después de la hora de inicio.");
   }
 
+  // 4. Validar que no choque con otras reservas
   pool.query(
-    "SELECT * FROM reservations WHERE date = $1 AND room = $2 AND ((start_time <= $3 AND end_time > $3) OR (start_time < $4 AND end_time >= $4))",
+    `SELECT * FROM reservations 
+     WHERE date = $1 AND room = $2 
+     AND ((start_time <= $3 AND end_time > $3) 
+     OR (start_time < $4 AND end_time >= $4))`,
     [date, room, start_time, end_time]
   )
     .then(result => {
-      if (result.rows.length > 0) return res.status(400).send("Horario ocupado.");
+      if (result.rows.length > 0) {
+        return res.status(400).send("Horario ocupado.");
+      }
 
+      // 5. Insertar la reserva
       pool.query(
         "INSERT INTO reservations (user_id, room, date, start_time, end_time) VALUES ($1, $2, $3, $4, $5)",
         [req.session.userId, room, date, start_time, end_time]
@@ -161,6 +172,7 @@ app.post("/api/reservations", requireLogin, (req, res) => {
     })
     .catch(err => res.status(500).send(err.message));
 });
+
 
 app.delete("/api/reservations/:id", requireLogin, (req, res) => {
   pool.query("DELETE FROM reservations WHERE id = $1 AND user_id = $2", [req.params.id, req.session.userId])
