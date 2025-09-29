@@ -12,11 +12,10 @@ const PORT = process.env.PORT || 3000;
 // 🔹 Conexión a PostgreSQL
 // ---------------------------
 const pool = new Pool({
-  connectionString: "postgresql://reservasdb_xddp_user:CBiDZwHLQi4Vpdxkpfx69vXs4jHDwneD@dpg-d39hb7fdiees73f2un60-a.virginia-postgres.render.com:5432/reservasdb_xddp",
-  ssl: {
-    rejectUnauthorized: false
-  }
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
+
 
 
 // Ejemplo para probar conexión
