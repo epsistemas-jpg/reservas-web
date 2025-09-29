@@ -127,7 +127,9 @@ async function mostrarMisReservas() {
 
   data.forEach(r => {
     let li = document.createElement("li");
-    li.textContent = `${r.room} - ${r.date} ${r.start_time} a ${r.end_time} `;
+    const fecha = new Date(r.date);
+    const fechaFormateada = fecha.toLocaleDateString("es-CO");
+    li.textContent = `${r.room} - ${fechaFormateada} ${r.start_time} a ${r.end_time} `;
 
     let btn = document.createElement("button");
     btn.textContent = "Eliminar";

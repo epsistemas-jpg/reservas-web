@@ -12,11 +12,10 @@ const PORT = process.env.PORT || 3000;
 // 🔹 Conexión a PostgreSQL
 // ---------------------------
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "reservas_db",
-  password: "1234",
-  port: 5432
+  connectionString: "postgresql://reservasdb_xddp_user:CBiDZwHLQi4Vpdxkpfx69vXs4jHDwneD@dpg-d39hb7fdiees73f2un60-a.virginia-postgres.render.com:5432/reservasdb_xddp",
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 
@@ -128,10 +127,30 @@ app.get("/api/myreservations", requireLogin, (req, res) => {
 app.post("/api/reservations", requireLogin, (req, res) => {
   const { room, date, start_time, end_time } = req.body;
 
-  // Validar fecha y hora
+
   const now = new Date();
-  const selectedDate = new Date(date + "T" + start_time);
-  if (selectedDate < now) return res.status(400).send("No se puede reservar en el pasado.");
+
+  // Construir inicio y fin completos (fecha + hora)
+  const startDateTime = new Date(`${date}T${start_time}`);
+  const endDateTime = new Date(`${date}T${end_time}`);
+
+  // 1. No dejar reservar en fechas anteriores
+  const today = new Date(now.toISOString().split("T")[0]); // solo fecha actual sin hora
+  const selectedDate = new Date(date);
+
+  if (selectedDate < today) {
+    return res.status(400).send("No se puede reservar en un día anterior.");
+  }
+
+  // 2. Si es hoy, verificar que la hora inicio sea mayor a la actual
+  if (selectedDate.getTime() === today.getTime() && startDateTime <= now) {
+    return res.status(400).send("La hora de inicio ya pasó.");
+  }
+
+  // 3. Validar que hora fin sea mayor a inicio
+  if (endDateTime <= startDateTime) {
+    return res.status(400).send("La hora de fin debe ser después de la hora de inicio.");
+  }
 
   pool.query(
     "SELECT * FROM reservations WHERE date = $1 AND room = $2 AND ((start_time <= $3 AND end_time > $3) OR (start_time < $4 AND end_time >= $4))",
