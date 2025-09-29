@@ -121,34 +121,39 @@ app.get("/api/myreservations", requireLogin, (req, res) => {
     .then(result => res.json(result.rows))
     .catch(err => res.status(500).send(err.message));
 });
-
+const moment = require("moment-timezone");
 app.post("/api/reservations", requireLogin, (req, res) => {
   const { room, date, start_time, end_time } = req.body;
 
-  const now = new Date();
-  const colombiaNow = new Date(nowUTC.getTime() - (5 * 60 * 60 * 1000));
+  // 🔹 Hora actual en Colombia
+  const now = moment.tz("America/Bogota");
 
+  // 🔹 Construir horas de la reserva en zona Colombia
+  const startDateTime = moment.tz(`${date} ${start_time}`, "YYYY-MM-DD HH:mm", "America/Bogota");
+  const endDateTime = moment.tz(`${date} ${end_time}`, "YYYY-MM-DD HH:mm", "America/Bogota");
 
-  const startDateTime = new Date(`${date}T${start_time}`);
-  const endDateTime = new Date(`${date}T${end_time}`);
+  const today = now.clone().startOf("day");
+  const selectedDate = moment.tz(date, "YYYY-MM-DD", "America/Bogota");
 
-  const today = new Date(now.toISOString().split("T")[0]); // solo fecha actual sin hora
-  const selectedDate = new Date(date);
-
-  if (selectedDate < today) {
+  // Validaciones
+  if (selectedDate.isBefore(today, "day")) {
     return res.status(400).send("No se puede reservar en un día anterior.");
   }
 
-  if (selectedDate.getTime() === today.getTime() && startDateTime <= now) {
+  if (selectedDate.isSame(today, "day") && startDateTime.isSameOrBefore(now)) {
     return res.status(400).send("La hora de inicio ya pasó.");
   }
 
-  if (endDateTime <= startDateTime) {
+  if (endDateTime.isSameOrBefore(startDateTime)) {
     return res.status(400).send("La hora de fin debe ser después de la hora de inicio.");
   }
 
+  // 🔹 Verificar choque de horarios
   pool.query(
-    "SELECT * FROM reservations WHERE date = $1 AND room = $2 AND ((start_time <= $3 AND end_time > $3) OR (start_time < $4 AND end_time >= $4))",
+    `SELECT * FROM reservations 
+     WHERE date = $1 AND room = $2 
+     AND ((start_time <= $3 AND end_time > $3) 
+       OR (start_time < $4 AND end_time >= $4))`,
     [date, room, start_time, end_time]
   )
     .then(result => {
