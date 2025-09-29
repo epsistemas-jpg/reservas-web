@@ -17,7 +17,6 @@ const pool = new Pool({
 });
 
 
-
 // Ejemplo para probar conexión
 pool.connect()
   .then(() => console.log("Conectado a PostgreSQL Local 🚀"))
@@ -126,14 +125,11 @@ app.get("/api/myreservations", requireLogin, (req, res) => {
 app.post("/api/reservations", requireLogin, (req, res) => {
   const { room, date, start_time, end_time } = req.body;
 
-
   const now = new Date();
 
-  // Construir inicio y fin completos (fecha + hora)
   const startDateTime = new Date(`${date}T${start_time}`);
   const endDateTime = new Date(`${date}T${end_time}`);
 
-  // 1. No dejar reservar en fechas anteriores
   const today = new Date(now.toISOString().split("T")[0]); // solo fecha actual sin hora
   const selectedDate = new Date(date);
 
@@ -141,12 +137,10 @@ app.post("/api/reservations", requireLogin, (req, res) => {
     return res.status(400).send("No se puede reservar en un día anterior.");
   }
 
-  // 2. Si es hoy, verificar que la hora inicio sea mayor a la actual
   if (selectedDate.getTime() === today.getTime() && startDateTime <= now) {
     return res.status(400).send("La hora de inicio ya pasó.");
   }
 
-  // 3. Validar que hora fin sea mayor a inicio
   if (endDateTime <= startDateTime) {
     return res.status(400).send("La hora de fin debe ser después de la hora de inicio.");
   }
