@@ -126,7 +126,7 @@ app.post("/api/reservations", requireLogin, (req, res) => {
   const { room, date, start_time, end_time } = req.body;
 
   const now = new Date();
-const colombiaNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) - (5 * 3600000)); // UTC-5
+  const colombiaNow = new Date(nowUTC.getTime() - (5 * 60 * 60 * 1000));
 
 
   const startDateTime = new Date(`${date}T${start_time}`);
