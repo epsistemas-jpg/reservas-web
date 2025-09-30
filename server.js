@@ -14,6 +14,7 @@ const PORT = process.env.PORT || 3000;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
+
 });
 
 
@@ -102,6 +103,7 @@ app.get("/api/reservations", (req, res) => {
   TO_CHAR(reservations.date, 'YYYY-MM-DD') as date, 
   reservations.start_time, 
   reservations.end_time, 
+  reservations.motivo,
   users.name AS user_name
 FROM reservations
 JOIN users ON reservations.user_id = users.id;
@@ -123,7 +125,7 @@ app.get("/api/myreservations", requireLogin, (req, res) => {
 });
 const moment = require("moment-timezone");
 app.post("/api/reservations", requireLogin, (req, res) => {
-  const { room, date, start_time, end_time } = req.body;
+  const { room, date, start_time, end_time, motivo } = req.body;
 
   // 🔹 Hora actual en Colombia
   const now = moment.tz("America/Bogota");
@@ -160,14 +162,65 @@ app.post("/api/reservations", requireLogin, (req, res) => {
       if (result.rows.length > 0) return res.status(400).send("Horario ocupado.");
 
       pool.query(
-        "INSERT INTO reservations (user_id, room, date, start_time, end_time) VALUES ($1, $2, $3, $4, $5)",
-        [req.session.userId, room, date, start_time, end_time]
+        "INSERT INTO reservations (user_id, room, date, start_time, end_time, motivo) VALUES ($1, $2, $3, $4, $5, $6)",
+        [req.session.userId, room, date, start_time, end_time, motivo]
       )
         .then(() => res.send("Reserva creada"))
         .catch(err => res.status(500).send(err.message));
     })
     .catch(err => res.status(500).send(err.message));
 });
+
+app.put("/api/reservations/:id", requireLogin, (req, res) => {
+  const { room, date, start_time, end_time, motivo } = req.body;
+
+  // 🔹 Hora actual en Colombia
+  const now = moment.tz("America/Bogota");
+  const startDateTime = moment.tz(`${date} ${start_time}`, "YYYY-MM-DD HH:mm", "America/Bogota");
+  const endDateTime = moment.tz(`${date} ${end_time}`, "YYYY-MM-DD HH:mm", "America/Bogota");
+
+  const today = now.clone().startOf("day");
+  const selectedDate = moment.tz(date, "YYYY-MM-DD", "America/Bogota");
+
+  // Validaciones
+  if (selectedDate.isBefore(today, "day")) {
+    return res.status(400).send("No se puede reservar en un día anterior.");
+  }
+
+  if (selectedDate.isSame(today, "day") && startDateTime.isSameOrBefore(now)) {
+    return res.status(400).send("La hora de inicio ya pasó.");
+  }
+
+  if (endDateTime.isSameOrBefore(startDateTime)) {
+    return res.status(400).send("La hora de fin debe ser después de la hora de inicio.");
+  }
+
+  // 🔹 Validar solapamientos (excluyendo la misma reserva que se edita)
+  pool.query(
+    `SELECT * FROM reservations 
+     WHERE date = $1 AND room = $2 AND id <> $5
+     AND ((start_time <= $3 AND end_time > $3) 
+       OR (start_time < $4 AND end_time >= $4))`,
+    [date, room, start_time, end_time, req.params.id]
+  )
+    .then(result => {
+      if (result.rows.length > 0) return res.status(400).send("Horario ocupado.");
+
+      pool.query(
+        `UPDATE reservations 
+         SET room = $1, date = $2, start_time = $3, end_time = $4, motivo = $5 
+         WHERE id = $6 AND user_id = $7`,
+        [room, date, start_time, end_time, motivo, req.params.id, req.session.userId]
+      )
+        .then(dbRes => {
+          if (dbRes.rowCount === 0) return res.status(403).send("No puedes editar esta reserva.");
+          res.send("Reserva actualizada ✅");
+        })
+        .catch(err => res.status(500).send(err.message));
+    })
+    .catch(err => res.status(500).send(err.message));
+});
+
 
 app.delete("/api/reservations/:id", requireLogin, (req, res) => {
   pool.query("DELETE FROM reservations WHERE id = $1 AND user_id = $2", [req.params.id, req.session.userId])

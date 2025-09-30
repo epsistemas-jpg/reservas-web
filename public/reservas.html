@@ -44,6 +44,9 @@
         <input type="time" name="start_time" required><br><br>
         <label>Hora Fin:</label>
         <input type="time" name="end_time" required><br><br>
+        <label>Motivo:</label>
+        <input type="text" name="motivo" required><br><br>
+
 
         <button type="submit">Reservar</button>
         <button type="button" onclick="cerrarFormulario()">Cancelar</button>
@@ -59,6 +62,39 @@
     <ul id="listaMisReservas"></ul>
   </div>
 </div>
+
+<div id="editarReservaForm" class="modal">
+  <div class="modal-content">
+    <h2>Editar Reserva</h2>
+    <form id="editReservaForm">
+      <input type="hidden" name="id">
+
+      <label>Sala:</label>
+      <select name="room" required>
+        <option value="Rio Magdalena">Rio Magdalena</option>
+        <option value="Bocas de ceniza">Bocas de ceniza</option>
+        <option value="Piso 1109">Piso 1109</option>
+      </select><br><br>
+
+      <label>Fecha:</label>
+      <input type="date" name="date" required><br><br>
+
+      <label>Hora Inicio:</label>
+      <input type="time" name="start_time" required><br><br>
+
+      <label>Hora Fin:</label>
+      <input type="time" name="end_time" required><br><br>
+
+      <label>Motivo:</label>
+      <input type="text" name="motivo" required><br><br>
+
+      <button type="submit">Actualizar</button>
+      <button type="button" onclick="cerrarEditar()">Cancelar</button>
+    </form>
+  </div>
+</div>
+
+
 
 
   <script src="js/app.js"></script>
