@@ -223,6 +223,7 @@ document.getElementById("editReservaForm").addEventListener("submit", async func
     });
     cerrarEditar();
     mostrarMisReservas();
+    calendar.refetchEvents();
   } else {
     let err = await resp.text();
     Swal.fire({
