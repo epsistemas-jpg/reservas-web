@@ -153,24 +153,26 @@ app.post("/api/reservations", requireLogin, (req, res) => {
   }
 
   // 🔹 Verificar choque de horarios
-  pool.query(
-    `SELECT * FROM reservations 
-     WHERE date = $1 AND room = $2 
-     AND ((start_time <= $3 AND end_time > $3) 
-       OR (start_time < $4 AND end_time >= $4))`,
-    [date, room, start_time, end_time]
-  )
-    .then(result => {
-      if (result.rows.length > 0) return res.status(400).send("Horario ocupado.");
+pool.query(
+  `SELECT * FROM reservations 
+   WHERE date = $1 AND room = $2 
+   AND NOT (end_time <= $3 OR start_time >= $4)`,
+  [date, room, start_time, end_time]
+)
+  .then(result => {
+    if (result.rows.length > 0) {
+      return res.status(400).send("Horario ocupado.");
+    }
 
-      pool.query(
-        "INSERT INTO reservations (user_id, room, date, start_time, end_time, motivo) VALUES ($1, $2, $3, $4, $5, $6)",
-        [req.session.userId, room, date, start_time, end_time, motivo]
-      )
-        .then(() => res.send("Reserva creada"))
-        .catch(err => res.status(500).send(err.message));
-    })
-    .catch(err => res.status(500).send(err.message));
+    pool.query(
+      "INSERT INTO reservations (user_id, room, date, start_time, end_time, motivo) VALUES ($1, $2, $3, $4, $5, $6)",
+      [req.session.userId, room, date, start_time, end_time, motivo]
+    )
+      .then(() => res.send("Reserva creada ✅"))
+      .catch(err => res.status(500).send(err.message));
+  })
+  .catch(err => res.status(500).send(err.message));
+
 });
 
 app.put("/api/reservations/:id", requireLogin, (req, res) => {
@@ -198,29 +200,33 @@ app.put("/api/reservations/:id", requireLogin, (req, res) => {
   }
 
   // 🔹 Validar solapamientos (excluyendo la misma reserva que se edita)
-  pool.query(
-    `SELECT * FROM reservations 
-     WHERE date = $1 AND room = $2 AND id <> $5
-     AND ((start_time <= $3 AND end_time > $3) 
-       OR (start_time < $4 AND end_time >= $4))`,
-    [date, room, start_time, end_time, req.params.id]
-  )
-    .then(result => {
-      if (result.rows.length > 0) return res.status(400).send("Horario ocupado.");
+pool.query(
+  `SELECT * FROM reservations 
+   WHERE date = $1 AND room = $2 AND id <> $5
+   AND NOT (end_time <= $3 OR start_time >= $4)`,
+  [date, room, start_time, end_time, req.params.id]
+)
+  .then(result => {
+    if (result.rows.length > 0) {
+      return res.status(400).send("Horario ocupado.");
+    }
 
-      pool.query(
-        `UPDATE reservations 
-         SET room = $1, date = $2, start_time = $3, end_time = $4, motivo = $5 
-         WHERE id = $6 AND user_id = $7`,
-        [room, date, start_time, end_time, motivo, req.params.id, req.session.userId]
-      )
-        .then(dbRes => {
-          if (dbRes.rowCount === 0) return res.status(403).send("No puedes editar esta reserva.");
-          res.send("Reserva actualizada ✅");
-        })
-        .catch(err => res.status(500).send(err.message));
-    })
-    .catch(err => res.status(500).send(err.message));
+    pool.query(
+      `UPDATE reservations 
+       SET room = $1, date = $2, start_time = $3, end_time = $4, motivo = $5 
+       WHERE id = $6 AND user_id = $7`,
+      [room, date, start_time, end_time, motivo, req.params.id, req.session.userId]
+    )
+      .then(dbRes => {
+        if (dbRes.rowCount === 0) {
+          return res.status(403).send("No puedes editar esta reserva.");
+        }
+        res.send("Reserva actualizada ✅");
+      })
+      .catch(err => res.status(500).send(err.message));
+  })
+  .catch(err => res.status(500).send(err.message));
+
 });
 
 app.delete("/api/reservations/:id", requireLogin, (req, res) => {
