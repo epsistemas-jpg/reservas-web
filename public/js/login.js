@@ -18,18 +18,27 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (res.ok) {
-        // ✅ Login correcto
-        Swal.fire({
-          icon: "success",
-          title: "¡Bienvenido!",
-          text: "Inicio de sesión exitoso",
-          timer: 2000,
-          showConfirmButton: false
-        }).then(() => {
-          window.location.href = "/reservas.html"; // Redirige al calendario
-        });
+        const result = await res.json();
+        if (result.success) {
+          // Guarda el userId en localStorage
+          localStorage.setItem("userId", result.userId);
+          Swal.fire({
+            icon: "success",
+            title: "¡Bienvenido!",
+            text: "Inicio de sesión exitoso",
+            timer: 2000,
+            showConfirmButton: false
+          }).then(() => {
+            window.location.href = "/reservas.html";
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Correo o contraseña incorrectos"
+          });
+        }
       } else {
-        // ❌ Login fallido
         Swal.fire({
           icon: "error",
           title: "Error",

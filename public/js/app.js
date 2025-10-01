@@ -34,7 +34,9 @@ document.addEventListener("DOMContentLoaded", function () {
             extendedProps: {
               horaInicio: r.start_time,
               horaFin: r.end_time,
-              motivo: r.motivo
+              motivo: r.motivo,
+              userId: r.user_id,
+              room: r.room
             }
           };
         });
@@ -66,6 +68,44 @@ document.addEventListener("DOMContentLoaded", function () {
       info.el.addEventListener("mouseleave", () => {
         tooltip.style.display = "none";
       });
+
+      // Doble clic para editar reserva propia
+      info.el.addEventListener("dblclick", function(e) {
+        const reserva = info.event.extendedProps;
+        const userId = localStorage.getItem("userId");
+        if (reserva.userId == userId) {
+          editarReserva({
+            id: info.event.id,
+            room: reserva.room,
+            date: info.event.startStr.split("T")[0],
+            start_time: reserva.horaInicio,
+            end_time: reserva.horaFin,
+            motivo: reserva.motivo
+          });
+        } else {
+          Swal.fire({
+            icon: "warning",
+            title: "No puedes editar esta reserva",
+            text: "Solo puedes editar tus propias reservas"
+          });
+        }
+      });
+    },
+    dateClick: function(info) {
+      const selectedDate = info.dateStr;
+      const today = new Date().toISOString().split("T")[0];
+
+      if (selectedDate < today) {
+        Swal.fire({
+          icon: "warning",
+          title: "Fecha inválida",
+          text: "No puedes reservar en una fecha pasada"
+        });
+        return;
+      }
+
+      document.getElementById("reservaForm").style.display = "block";
+      document.getElementById("reservaForm").querySelector("[name='date']").value = selectedDate;
     }
   });
 
@@ -222,7 +262,7 @@ document.getElementById("editReservaForm").addEventListener("submit", async func
       showConfirmButton: false
     });
     cerrarEditar();
-    mostrarMisReservas();
+    mostrarMisReservas();  
     calendar.refetchEvents();
   } else {
     let err = await resp.text();

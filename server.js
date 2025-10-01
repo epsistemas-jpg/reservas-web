@@ -81,7 +81,8 @@ app.post("/login", (req, res) => {
 
       req.session.userId = row.id;
       req.session.userName = row.name;
-      res.redirect("/reservas.html");
+      // Enviar el userId al frontend para guardarlo en localStorage
+      res.json({ success: true, userId: row.id });
     })
     .catch(err => res.status(500).send(err.message));
 });
@@ -104,6 +105,7 @@ app.get("/api/reservations", (req, res) => {
   reservations.start_time, 
   reservations.end_time, 
   reservations.motivo,
+  reservations.user_id,
   users.name AS user_name
 FROM reservations
 JOIN users ON reservations.user_id = users.id;
@@ -220,7 +222,6 @@ app.put("/api/reservations/:id", requireLogin, (req, res) => {
     })
     .catch(err => res.status(500).send(err.message));
 });
-
 
 app.delete("/api/reservations/:id", requireLogin, (req, res) => {
   pool.query("DELETE FROM reservations WHERE id = $1 AND user_id = $2", [req.params.id, req.session.userId])
